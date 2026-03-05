@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Motivate Me - Habit Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#6C47FF",
+                        "accent": "#FFB800",
+                        "background-light": "#F8F7FF",
+                        "background-dark": "#0F0F1A",
+                    },
+                    fontFamily: {
+                        "display": ["Poppins", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "2xl": "24px",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .custom-shadow {
+            box-shadow: 0 10px 30px -5px rgba(108, 71, 255, 0.2);
+        }
+        .fab-shadow {
+            box-shadow: 0 8px 20px -4px rgba(108, 71, 255, 0.4);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen text-slate-900 dark:text-slate-100 font-display">
+<div class="max-w-md mx-auto min-h-screen flex flex-col relative pb-32">
+<!-- Header -->
+<header class="flex items-center justify-between px-6 py-6">
+<div class="flex items-center gap-3">
+<div class="size-12 rounded-2xl bg-primary/10 flex items-center justify-center overflow-hidden border-2 border-primary/20">
+<img alt="User profile" data-alt="Stylized 3D avatar of a smiling young person" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDiVP_HixtyRxyEbgm82Y8Y7cuOwwL-K2HXEomZuakHZlHxu-jZYpHChKsPNyWxjavaHEay-iUKuNDPAEjQyMYog9x6w4n7Ao6yDquang9aWEaKG0I3JgkGazSRCv4I1jTSu_HszVPtRI0cGuHIO2BkFXt41NEJ3XW21nkbxcdhhk5Sp4iItrcw7oGpx0zyQCRaXjnYWxwhBp_fT1j_9onVSxaffpWBqiKjmdH9CG2wX8Y_5KJD-frps4ORhLd4BE8sZEZbhMv7JY6a"/>
+</div>
+<div>
+<p class="text-slate-500 dark:text-slate-400 text-xs font-medium">Welcome back,</p>
+<h1 class="text-lg font-bold">Alex Rivera</h1>
+</div>
+</div>
+<button class="size-12 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</header>
+<!-- Main Content -->
+<main class="flex-1 px-6 space-y-8">
+<!-- Points Hero Card -->
+<section class="relative overflow-hidden rounded-2xl bg-primary p-8 text-white custom-shadow">
+<div class="absolute -right-10 -top-10 size-40 bg-white/10 rounded-full blur-2xl"></div>
+<div class="absolute -left-10 -bottom-10 size-32 bg-accent/20 rounded-full blur-2xl"></div>
+<div class="relative z-10">
+<div class="flex justify-between items-start mb-6">
+<div>
+<p class="text-white/80 text-sm font-medium uppercase tracking-wider">Total Balance</p>
+<h2 class="text-6xl font-bold mt-1 tracking-tight">2,450</h2>
+<p class="text-accent text-sm font-semibold mt-2 flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+                                +12% from last week
+                            </p>
+</div>
+<div class="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border border-white/20">
+                            Elite Tier
+                        </div>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-white/10">
+<div class="flex -space-x-2">
+<div class="size-8 rounded-full border-2 border-primary bg-slate-200 flex items-center justify-center text-[10px] font-bold text-primary">ST</div>
+<div class="size-8 rounded-full border-2 border-primary bg-accent flex items-center justify-center text-[10px] font-bold text-white">15</div>
+</div>
+<button class="bg-accent text-slate-900 px-5 py-2.5 rounded-xl text-xs font-bold hover:opacity-90 transition-opacity">
+                            Claim Rewards
+                        </button>
+</div>
+</div>
+</section>
+<!-- Stats Row -->
+<section class="grid grid-cols-2 gap-4">
+<div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700">
+<div class="size-10 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 mb-3">
+<span class="material-symbols-outlined">local_fire_department</span>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-xs font-medium">Current Streak</p>
+<p class="text-xl font-bold">15 Days</p>
+</div>
+<div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700">
+<div class="size-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 mb-3">
+<span class="material-symbols-outlined">task_alt</span>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-xs font-medium">Completed</p>
+<p class="text-xl font-bold">84%</p>
+</div>
+</section>
+<!-- Habits Section -->
+<section class="space-y-4">
+<div class="flex items-center justify-between">
+<h3 class="text-xl font-bold tracking-tight">Today's Habits</h3>
+<button class="text-primary text-sm font-semibold">View All</button>
+</div>
+<div class="space-y-3">
+<!-- Habit Item 1 -->
+<div class="group flex items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 transition-all hover:border-primary/30">
+<div class="relative flex items-center justify-center">
+<input class="peer size-7 rounded-lg border-2 border-slate-200 dark:border-slate-600 text-primary focus:ring-primary/20 focus:ring-offset-0 transition-all cursor-pointer appearance-none checked:bg-primary checked:border-primary" type="checkbox"/>
+<span class="material-symbols-outlined absolute pointer-events-none text-white scale-0 peer-checked:scale-100 transition-transform text-sm">check</span>
+</div>
+<div class="flex-1">
+<h4 class="font-semibold text-slate-800 dark:text-slate-100">Morning Meditation</h4>
+<p class="text-xs text-slate-500 dark:text-slate-400">08:00 AM • 10 mins</p>
+</div>
+<div class="flex flex-col items-end gap-1">
+<span class="text-[10px] font-bold text-accent px-2 py-0.5 bg-accent/10 rounded-full">+20 pts</span>
+</div>
+</div>
+<!-- Habit Item 2 -->
+<div class="group flex items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 transition-all hover:border-primary/30">
+<div class="relative flex items-center justify-center">
+<input checked="" class="peer size-7 rounded-lg border-2 border-slate-200 dark:border-slate-600 text-primary focus:ring-primary/20 focus:ring-offset-0 transition-all cursor-pointer appearance-none checked:bg-primary checked:border-primary" type="checkbox"/>
+<span class="material-symbols-outlined absolute pointer-events-none text-white scale-100 transition-transform text-sm">check</span>
+</div>
+<div class="flex-1">
+<h4 class="font-semibold text-slate-800 dark:text-slate-100 line-through opacity-50">Hydrate - 2L Water</h4>
+<p class="text-xs text-slate-500 dark:text-slate-400">All Day • Ongoing</p>
+</div>
+<div class="flex flex-col items-end gap-1">
+<span class="material-symbols-outlined text-primary text-lg">verified</span>
+</div>
+</div>
+<!-- Habit Item 3 -->
+<div class="group flex items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 transition-all hover:border-primary/30">
+<div class="relative flex items-center justify-center">
+<input class="peer size-7 rounded-lg border-2 border-slate-200 dark:border-slate-600 text-primary focus:ring-primary/20 focus:ring-offset-0 transition-all cursor-pointer appearance-none checked:bg-primary checked:border-primary" type="checkbox"/>
+<span class="material-symbols-outlined absolute pointer-events-none text-white scale-0 peer-checked:scale-100 transition-transform text-sm">check</span>
+</div>
+<div class="flex-1">
+<h4 class="font-semibold text-slate-800 dark:text-slate-100">Read 20 Pages</h4>
+<p class="text-xs text-slate-500 dark:text-slate-400">09:00 PM • Book: Atomic Habits</p>
+</div>
+<div class="flex flex-col items-end gap-1">
+<span class="text-[10px] font-bold text-accent px-2 py-0.5 bg-accent/10 rounded-full">+50 pts</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Navigation -->
+<nav class="fixed bottom-6 left-6 right-6 z-50">
+<div class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/20 dark:border-slate-800 rounded-2xl px-2 h-20 flex items-center justify-around shadow-2xl">
+<!-- Nav Item 1 -->
+<a class="flex flex-col items-center justify-center gap-1 w-14 text-primary" href="#">
+<span class="material-symbols-outlined fill-[1]">home</span>
+<span class="text-[10px] font-bold">Home</span>
+</a>
+<!-- Nav Item 2 -->
+<a class="flex flex-col items-center justify-center gap-1 w-14 text-slate-400" href="#">
+<span class="material-symbols-outlined">bar_chart</span>
+<span class="text-[10px] font-bold">Stats</span>
+</a>
+<!-- Elevated FAB -->
+<div class="relative -mt-12">
+<button class="size-16 rounded-full bg-primary text-white flex items-center justify-center fab-shadow border-4 border-background-light dark:border-background-dark group hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-3xl transition-transform group-hover:rotate-90">add</span>
+</button>
+</div>
+<!-- Nav Item 3 -->
+<a class="flex flex-col items-center justify-center gap-1 w-14 text-slate-400" href="#">
+<span class="material-symbols-outlined">emoji_events</span>
+<span class="text-[10px] font-bold">Badges</span>
+</a>
+<!-- Nav Item 4 -->
+<a class="flex flex-col items-center justify-center gap-1 w-14 text-slate-400" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-[10px] font-bold">Settings</span>
+</a>
+</div>
+</nav>
+</div>
+</body></html>

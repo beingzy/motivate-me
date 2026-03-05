@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#4747ff",
+              "background-light": "#f5f5f8",
+              "background-dark": "#0f0f23",
+            },
+            fontFamily: {
+              "display": ["Spline Sans", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<title>Motivate Me - My Habits</title>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen pb-24">
+<!-- Header & Navigation -->
+<header class="sticky top-0 z-10 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md px-6 pt-8 pb-4">
+<div class="flex items-center justify-between mb-8">
+<div class="flex items-center gap-3">
+<div class="bg-primary/10 p-2 rounded-lg">
+<span class="material-symbols-outlined text-primary">layers</span>
+</div>
+<h2 class="text-lg font-bold tracking-tight">Motivate Me</h2>
+</div>
+<button class="bg-primary text-white px-5 py-2.5 rounded-full text-sm font-semibold shadow-lg shadow-primary/20 flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">add</span>
+                New Habit
+            </button>
+</div>
+<h1 class="text-4xl font-bold tracking-tight mb-6">My Habits</h1>
+<!-- Segmented Control -->
+<div class="flex p-1 bg-slate-200/50 dark:bg-slate-800/50 rounded-xl">
+<label class="flex-1">
+<input checked="" class="peer hidden" name="view" type="radio" value="active"/>
+<div class="text-center py-2 text-sm font-medium rounded-lg cursor-pointer transition-all peer-checked:bg-white dark:peer-checked:bg-slate-700 peer-checked:shadow-sm peer-checked:text-primary text-slate-500">
+                    Active
+                </div>
+</label>
+<label class="flex-1">
+<input class="peer hidden" name="view" type="radio" value="archived"/>
+<div class="text-center py-2 text-sm font-medium rounded-lg cursor-pointer transition-all peer-checked:bg-white dark:peer-checked:bg-slate-700 peer-checked:shadow-sm peer-checked:text-primary text-slate-500">
+                    Archived
+                </div>
+</label>
+</div>
+</header>
+<!-- Habit List Section -->
+<main class="px-6 space-y-4 mt-4">
+<!-- Habit Card 1 -->
+<div class="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-between">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full">+10 PTS</span>
+<span class="text-slate-400 text-xs font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">local_fire_department</span>
+                        7 day streak
+                    </span>
+</div>
+<h3 class="text-lg font-semibold text-slate-900 dark:text-white mt-1">Morning Meditation</h3>
+</div>
+<div class="flex items-center gap-3">
+<button class="h-12 w-12 rounded-full border-2 border-primary/20 flex items-center justify-center text-primary hover:bg-primary/5 transition-colors">
+<span class="material-symbols-outlined">check</span>
+</button>
+</div>
+</div>
+<!-- Habit Card 2 -->
+<div class="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-between">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full">+15 PTS</span>
+<span class="text-slate-400 text-xs font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">local_fire_department</span>
+                        12 day streak
+                    </span>
+</div>
+<h3 class="text-lg font-semibold text-slate-900 dark:text-white mt-1">Read 20 Pages</h3>
+</div>
+<div class="flex items-center gap-3">
+<button class="h-12 w-12 rounded-full border-2 border-primary/20 flex items-center justify-center text-primary hover:bg-primary/5 transition-colors">
+<span class="material-symbols-outlined">check</span>
+</button>
+</div>
+</div>
+<!-- Habit Card 3 (Completed State) -->
+<div class="bg-white/60 dark:bg-slate-800/60 p-5 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-between opacity-80">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="text-xs font-bold uppercase tracking-wider text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full">+5 PTS</span>
+<span class="text-slate-400 text-xs font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">local_fire_department</span>
+                        3 day streak
+                    </span>
+</div>
+<h3 class="text-lg font-semibold text-slate-400 dark:text-slate-500 mt-1 line-through">Drink 2L Water</h3>
+</div>
+<div class="flex items-center gap-3">
+<div class="h-12 w-12 rounded-full bg-primary flex items-center justify-center text-white">
+<span class="material-symbols-outlined">done_all</span>
+</div>
+</div>
+</div>
+<!-- Habit Card 4 -->
+<div class="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-between">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full">+20 PTS</span>
+<span class="text-slate-400 text-xs font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">local_fire_department</span>
+                        0 day streak
+                    </span>
+</div>
+<h3 class="text-lg font-semibold text-slate-900 dark:text-white mt-1">Daily Workout</h3>
+</div>
+<div class="flex items-center gap-3">
+<button class="h-12 w-12 rounded-full border-2 border-primary/20 flex items-center justify-center text-primary hover:bg-primary/5 transition-colors">
+<span class="material-symbols-outlined">check</span>
+</button>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-background-dark/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 px-6 py-3 flex justify-between items-center z-20">
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">check_circle</span>
+<span class="text-[10px] font-bold uppercase tracking-widest">Habits</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">bar_chart</span>
+<span class="text-[10px] font-bold uppercase tracking-widest">Stats</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="text-[10px] font-bold uppercase tracking-widest">Social</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-[10px] font-bold uppercase tracking-widest">Settings</span>
+</a>
+</nav>
+</body></html>

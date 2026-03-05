@@ -1,0 +1,468 @@
+# Motivate Me — Product Requirements Document
+
+**Version:** 0.1
+**Last updated:** 2026-03-05
+**Status:** Active
+
+---
+
+## Overview
+
+Motivate Me is a self-development PWA that gamifies habit formation through a point system. Users earn points by logging habit-related actions, then spend points to redeem rewards — real-world items (photo-logged) or online purchases (URL-linked). An optional peer-monitor layer lets invited users observe progress and approve high-stakes redemptions. The app ships as a PWA (installable on iOS and Android home screens) and will eventually migrate to a native mobile app.
+
+---
+
+## Goals
+
+1. Help individuals build lasting habits by tying action to tangible, personal rewards.
+2. Make self-discipline feel like a game: streaks, bonuses, and a growing reward balance.
+3. Enable lightweight social accountability via optional invited monitors — without making it a social network.
+
+---
+
+## Target Users
+
+| Role | Description |
+|---|---|
+| **Primary User** | An individual who wants to gamify their own self-improvement habits. |
+| **Monitor** | An invited peer (friend, partner, parent, colleague) who observes the user's progress and optionally approves redemptions or helps set up the system. |
+
+---
+
+## Tech Stack
+
+| Layer | Choice |
+|---|---|
+| Framework | Next.js (App Router) |
+| Backend / DB | Supabase (PostgreSQL) |
+| Auth | Supabase Auth — magic link (email only) |
+| File storage | Supabase Storage (reward photos) |
+| Deployment | Vercel |
+| PWA | next-pwa or built-in Next.js service worker |
+| Styling | Tailwind CSS |
+
+---
+
+## UX Direction
+
+**Gamified & playful.** Bright colors, satisfying micro-interactions, badge moments, level-up animations. Every point earned and reward unlocked should feel rewarding. Think Duolingo-level delight, not a spreadsheet.
+
+---
+
+## Core Features
+
+### 1. Authentication
+
+- Magic link login via email — no password.
+- Session persists across app restarts (PWA-friendly).
+- User profile: display name, avatar (optional).
+
+### 2. Habit Management
+
+Users define their own habits from scratch.
+
+**Habit fields:**
+- Name (required)
+- Description (optional)
+- Point value per completion (user-defined integer)
+- Requires photo proof on log? (toggle)
+- Requires monitor approval on log? (toggle — only available if a monitor is connected)
+- Frequency target: none / daily / N times per week
+- Active / archived status
+
+**Habit actions:**
+- Create, edit, archive habits
+- Habit list view (active habits dashboard)
+
+### 3. Action Logging
+
+Users log habit completions. Each log entry records:
+- Which habit was completed
+- Timestamp
+- Optional photo upload (required if habit is set to "requires photo proof")
+- Optional note
+- Status: `pending_approval` | `approved` | `self_approved`
+
+**Approval flow:**
+- If habit requires monitor approval → status starts as `pending_approval`; points held until monitor approves.
+- If self-reported → status is `self_approved`; points awarded immediately.
+
+### 4. Point System
+
+- Each approved log entry credits points to the user's balance.
+- Point balance is the source of truth for all redemptions.
+- Points are never negative.
+
+**Streak mechanics:**
+- Per-habit streak: consecutive days the habit was completed.
+- Streak milestone bonuses (e.g., 7-day streak = +10 bonus points, 30-day = +50 bonus points). Exact values configurable.
+- Breaking a streak resets it to 0.
+
+**Frequency targets:**
+- User sets a target (e.g., "3x per week").
+- Dashboard shows progress toward weekly target.
+- Completing a weekly target awards a bonus point block.
+
+### 5. Rewards
+
+Two reward types:
+
+| Type | Description |
+|---|---|
+| **Offline reward** | Physical item or experience. Logged with photo + title + description + date + point cost. |
+| **Online reward** | URL link to a product or experience. Logged with URL + title + description + point cost. |
+
+**Reward fields (creation):**
+- Title (required)
+- Type: offline / online
+- Point cost (required)
+- Photo (offline only, optional at creation — required at redemption)
+- URL (online only)
+- Description
+- Requires monitor approval to redeem? (toggle; configurable per reward; default: off)
+- Approval required from: select from connected monitors
+
+**Reward states:** `available` | `in_wishlist` | `redeemed`
+
+**Redemption flow:**
+1. User initiates redemption (must have sufficient points).
+2. If no approval required → immediate redemption, points deducted, user uploads photo (offline) or confirms URL (online).
+3. If approval required → request sent to specified monitor(s); points held (not deducted yet); monitor approves or rejects.
+   - Approved → points deducted, reward marked redeemed.
+   - Rejected → request cancelled, points released.
+
+### 6. Wishlist
+
+- User can mark any reward as "wishlist" when they don't yet have enough points.
+- Wishlist shows: reward name, cost, current balance, points needed.
+- Progress bar toward each wishlist reward.
+- When balance reaches the cost, user gets a notification/badge prompting them to redeem.
+
+### 7. Monitor / Invite System
+
+- User generates an invite link or sends an email invite to a monitor.
+- Monitor signs up / logs in via magic link.
+- Connection is per-user: one user can have multiple monitors; a monitor can watch multiple users.
+
+**Monitor permissions:**
+- View the user's habit list and action log history.
+- View point balance and full redemption history.
+- Approve or reject pending reward redemption requests.
+- Create and edit habits and rewards on behalf of the user (with user's prior consent, granted at invite time).
+
+**Monitor does NOT have permission to:**
+- Log actions on behalf of the user.
+- Spend or transfer points.
+- Remove the user's account or data.
+
+### 8. Notifications (PWA push / in-app)
+
+- Action log approved or rejected by monitor.
+- Redemption request approved or rejected.
+- Streak milestone reached.
+- Wishlist item now affordable.
+- Pending action awaiting monitor approval (monitor-side).
+- Pending redemption awaiting monitor approval (monitor-side).
+
+---
+
+## Data Model (High-Level)
+
+```
+users
+  id, email, display_name, avatar_url, created_at
+
+monitors
+  id, user_id, monitor_user_id, permissions (json), accepted_at
+
+habits
+  id, user_id, name, description, points_per_completion,
+  requires_photo, requires_approval, frequency_target,
+  frequency_count, is_active, created_at
+
+action_logs
+  id, habit_id, user_id, logged_at, photo_url, note,
+  status (pending_approval | approved | self_approved),
+  points_awarded, approved_by, approved_at
+
+rewards
+  id, user_id, title, type (offline | online), point_cost,
+  photo_url, url, description, requires_approval,
+  approval_monitor_ids (array), status (available | wishlist | redeemed),
+  created_at
+
+redemptions
+  id, reward_id, user_id, requested_at, status (pending | approved | rejected),
+  approved_by, approved_at, photo_url, note
+
+point_ledger
+  id, user_id, delta (positive or negative), reason, reference_id,
+  reference_type (action_log | redemption | streak_bonus), created_at
+```
+
+---
+
+## Screens / Pages
+
+| Screen | Description |
+|---|---|
+| `/` | Landing / onboarding for logged-out users |
+| `/dashboard` | Today's habits, point balance, streak summary |
+| `/habits` | Full habit list; create / edit |
+| `/log` | Log an action (select habit, add photo/note, submit) |
+| `/rewards` | Reward catalog (available + wishlist) |
+| `/rewards/new` | Create a reward |
+| `/rewards/[id]` | Reward detail + redeem action |
+| `/wishlist` | Wishlist view with progress bars |
+| `/history` | Full action log history |
+| `/redemptions` | Redemption history |
+| `/monitors` | Manage connected monitors; invite |
+| `/monitor/[userId]` | Monitor view — see another user's dashboard |
+| `/settings` | Profile, notification preferences |
+
+---
+
+## PWA Requirements
+
+- `manifest.json` with app name, icons (192px, 512px), `display: standalone`.
+- Service worker for offline caching of shell (no offline data mutation).
+- `theme-color` set for iOS/Android status bar tinting.
+- Installable on iOS Safari ("Add to Home Screen") and Android Chrome.
+- Viewport meta tag optimized for mobile.
+
+---
+
+## Non-Goals (v1)
+
+- Native iOS / Android apps (post-PWA phase).
+- Public social feed or leaderboards.
+- Automated habit detection (e.g., from health data / step count).
+- Payment / real money integration for online rewards.
+- Group challenges or team habits.
+
+---
+
+## Build Queue
+
+### Completed
+
+- [x] **Project scaffold** — Vite + React 19 + Tailwind v4 + Vitest + ESLint
+- [x] **Auth — magic link login/logout** — Supabase Auth, AuthProvider, AuthGate, Login page
+- [x] **Habit CRUD** — Create, edit, archive with validation
+- [x] **Action logging + point ledger** — Log actions, append-only ledger, real-time balance
+- [x] **Streak tracking + bonuses** — Computed from logs, milestone bonuses at 7/30/60/90 days
+- [x] **Reward CRUD + wishlist** — Create rewards, wishlist with progress bars, notification on affordable
+- [x] **Reward redemption flow** — Self-redeem with point deduction, insufficient points blocked
+- [x] **Notifications (in-app)** — Bell icon, unread count, mark as read, streak/redemption/wishlist triggers
+- [x] **Supabase integration** — All data persisted to Postgres, RLS policies, optimistic local updates
+
+### Next Up
+
+- [x] **Monitor invite + connection** — Monitors page, invite link generation, accept flow, revoke, RLS policies
+  - **Note:** Run `supabase/migrations/002_monitors.sql` in SQL Editor
+
+- [x] **Monitor approval flows** — Approve/reject pending action logs, points credited on approval, user notified
+- [x] **Notifications (in-app)** — Already completed in earlier iteration
+
+- [x] **PWA polish + installability** — manifest.json, app icons, service worker, offline shell caching, apple-touch-icon
+
+- [ ] **User profile management** — Profile page with ID, photo, email, gender
+  - **User:** Primary user
+  - **Acceptance Criteria:**
+    - Profile page shows user ID (read-only), email (read-only from auth), display name (editable), gender (editable), profile photo (uploadable)
+    - Photo upload via Supabase Storage
+    - Profile data persisted to `profiles` table
+    - Me page shows profile photo and display name from profile
+  - **Tests Required:** Profile page renders all fields; save button works
+
+### Backlog
+
+- [ ] Push notifications (web push API)
+- [ ] Frequency target weekly progress tracking on dashboard
+- [ ] Redemption history detail view with photo gallery
+- [ ] Dark mode
+- [ ] Habit templates / starter packs
+- [ ] Export data (CSV / JSON)
+- [ ] Native app (React Native / Expo) — post-PWA phase
+
+---
+
+## Google Stitch UI Design Prompt
+
+> Use this prompt verbatim (or lightly adapted) when opening a new Google Stitch session to explore the visual design of Motivate Me. Update this section whenever core UX decisions are confirmed so it stays in sync with the product.
+
+---
+
+```
+App name: Motivate Me
+Platform: Mobile-first PWA (iOS & Android). Design as a native-feeling mobile app at 390 × 844 px (iPhone 14 viewport). All screens should feel installable — no browser chrome, no scrollable web pages. Think Duolingo meets Habitica: bold, colorful, gamified, with satisfying micro-interactions.
+
+--- BRAND DIRECTION ---
+
+Personality: Playful, encouraging, celebratory. Never punishing. Rewards effort and consistency.
+Visual style: Vibrant but not chaotic. One strong primary color with high-contrast accent for CTAs. Rounded corners everywhere (16–24 px radius on cards). Generous whitespace. Friendly, rounded sans-serif typeface (e.g. Nunito, Poppins, or similar).
+Color palette direction: Start from a warm violet/indigo primary (#6C47FF or similar) with a bright yellow-orange accent (#FFB800) for points and rewards. White card surfaces on a very light lavender background. Success green for completed actions. Use color intentionally — habit streaks glow, point gains animate in gold.
+Iconography: Filled, rounded icons. Custom illustrated badge/trophy assets for milestone moments.
+Micro-interactions: Confetti burst on streak milestone. Point counter ticks up like an odometer. Checkmark bounces on habit log. Reward card flips on redemption.
+
+--- NAVIGATION ---
+
+Bottom tab bar (5 tabs, icon + label):
+  1. Home (house icon) — Dashboard
+  2. Habits (lightning bolt) — Habit list
+  3. Log (large center FAB button, "+" icon, elevated, accent color) — Log an action
+  4. Rewards (gift box) — Reward catalog + wishlist
+  5. Me (person icon) — Profile, monitors, settings
+
+--- SCREENS TO DESIGN ---
+
+SCREEN 1: Dashboard (Home tab)
+Purpose: Daily motivational hub. User lands here every time they open the app.
+Layout (top to bottom):
+  - Top bar: avatar (left), app logo/name center, notification bell (right) with unread badge
+  - Hero card (full width, gradient background using primary color): displays total point balance in large bold type with a gold coin icon, subtitle "points available". Below it, a small row showing "X redeemed this month".
+  - "Today's Habits" section header with date subtitle
+  - Habit cards (vertical list, each card):
+      - Habit name (bold), point value badge (e.g. "+10 pts"), frequency tag (e.g. "Daily")
+      - Streak flame icon + streak count (e.g. "🔥 5 days")
+      - Right side: large circular checkbox — empty (to-do) or filled with checkmark + green (done)
+      - If "pending approval": show a clock/hourglass icon instead, muted color
+  - If all habits done for today: full-width celebration banner ("All done today! 🎉 +X pts earned") with confetti
+  - "Streaks at Risk" section (if any habit not yet logged today and it's past noon): highlight those habits in a warm amber card
+  - Bottom shortcut: "View Wishlist" pill button showing closest wishlist item + progress bar
+
+SCREEN 2: Habit List (Habits tab)
+Purpose: Manage all habits.
+Layout:
+  - Header: "My Habits" title, "New Habit" button (top right, accent color)
+  - Segmented control: Active | Archived
+  - Habit rows (list):
+      - Habit name + description preview
+      - Point value chip, frequency chip
+      - Streak count
+      - Approval indicator icon if monitor approval required
+      - Tap row → Habit Detail / Edit sheet
+  - Empty state (no habits): friendly illustration + "Create your first habit" CTA
+
+SCREEN 3: Create / Edit Habit (Bottom sheet or full screen modal)
+Fields:
+  - Habit name (text input, large)
+  - Description (multiline, optional)
+  - Points per completion: number stepper with + / - buttons, prominent display
+  - Frequency target: pill selector — None / Daily / Custom (N × per week with inline counter)
+  - Requires photo proof: toggle with explanation label
+  - Requires monitor approval: toggle (disabled + tooltip if no monitor connected)
+  - Save / Cancel buttons at bottom
+
+SCREEN 4: Log an Action (Center FAB → full screen or tall bottom sheet)
+Purpose: Quick, satisfying action logging.
+Layout:
+  - "Log a Habit" title
+  - Habit selector: horizontal scroll of habit cards (name + pts), selected one highlighted with primary color ring
+  - Photo upload zone: large dashed rounded rectangle — "Add photo" (camera icon). If habit requires photo, show required badge.
+  - Note field: optional short text input
+  - "Earn X points" preview line in gold, updates as user selects habit
+  - Big "Log It" CTA button (full width, accent color)
+  - On submit: animated point counter increment, confetti if streak milestone hit
+
+SCREEN 5: Reward Catalog (Rewards tab — default view)
+Purpose: Browse and manage rewards.
+Layout:
+  - Header: "Rewards" title, "Add Reward" button
+  - Segmented control: Available | Wishlist | Redeemed
+  - Point balance sticky chip at top right ("You have X pts")
+  - Reward grid (2-column) or list cards (user toggle preference):
+      - Reward card: photo thumbnail (or emoji/icon placeholder), title, cost in points (gold coin icon + number)
+      - "Redeem" button if balance sufficient (active, accent)
+      - "Wishlist" button if insufficient (muted, outline)
+      - Approval required badge (lock icon) if monitor approval needed
+  - Wishlist tab: same cards but with progress bar (current pts / cost) and "X pts to go" label
+  - Redeemed tab: greyed/sepia card with "Redeemed on [date]" overlay, tap to view photo/details
+
+SCREEN 6: Reward Detail + Redeem
+Layout:
+  - Full-screen modal or pushed screen
+  - Large photo at top (or placeholder gradient with emoji)
+  - Title (large, bold), cost badge
+  - Description text
+  - For online reward: URL link chip (tap to open)
+  - Approval status section (if approval required): "Requires approval from [Monitor Name]"
+  - Point balance vs cost: progress bar or simple "You have X / Y pts"
+  - "Redeem Now" CTA (full width) — disabled + tooltip if insufficient
+  - On redeem (self): confetti, confirmation screen "Reward redeemed!" with point deduction shown
+  - On redeem (approval): "Request sent to [Monitor]" confirmation with pending state UI
+
+SCREEN 7: Wishlist
+Layout:
+  - "My Wishlist" header
+  - List of wishlist reward cards (full width):
+      - Photo + title
+      - Goal progress bar: filled portion = current balance / cost. Color: primary color.
+      - "[X] pts to go" label
+      - "You can redeem this!" banner when balance reached (accent color, pulsing border)
+  - Empty state: "Add rewards to your wishlist to track your progress."
+
+SCREEN 8: Notification Center (Bell icon → overlay panel or screen)
+Layout:
+  - "Notifications" header, "Mark all read" link
+  - Grouped list (Today / Earlier):
+      - Each row: icon (type-specific color), message text, timestamp, unread dot
+      - Types: streak milestone (flame), approval decision (check/x), redemption decision (gift), wishlist ready (star)
+  - Tap notification → navigate to relevant screen
+
+SCREEN 9: Monitor Dashboard (when current user is acting as a monitor for someone else)
+Layout:
+  - Header: "Monitoring [Name]" with their avatar
+  - User's point balance + streak summary cards (read-only, same style as Dashboard hero but muted/secondary palette)
+  - "Pending Approvals" section (priority, shown at top if non-empty):
+      - Redemption requests: reward name, point cost, request date → "Approve" / "Reject" buttons
+  - "Recent Activity" feed: habit logs with timestamps, status badges
+  - "Their Rewards" and "Their Habits" quick-access links
+
+SCREEN 10: Profile & Settings (Me tab)
+Layout:
+  - Avatar (editable), display name, email (read-only)
+  - "My Monitors" section: list of connected monitors (avatar, name), "Invite a Monitor" button
+  - "Monitoring Others" section: list of users I am monitoring
+  - Notification preferences toggles
+  - "Export my data" link
+  - Sign out button (bottom, red text, no background)
+
+--- COMPONENT LIBRARY ---
+
+Design these reusable components explicitly:
+  1. Point badge: gold coin icon + number, used inline everywhere
+  2. Streak counter: flame icon + number, two sizes (compact for lists, large for dashboard)
+  3. Habit card (list variant): described in Screen 1
+  4. Reward card (grid variant): described in Screen 5
+  5. Progress bar: rounded, primary color fill, shows label inside or below
+  6. Status badge: pill shape — Pending (amber), Approved (green), Rejected (red), Self-approved (blue)
+  7. Bottom tab bar: as described in Navigation
+  8. FAB (center Log button): larger than other tabs, elevated shadow, accent color circle
+  9. Celebration overlay: full-screen confetti + large message, auto-dismisses after 2s
+  10. Empty state: centered illustration + headline + CTA button
+
+--- INTERACTIONS TO ANNOTATE ---
+
+- Habit checkbox tap: bounce animation → green fill → point counter increments
+- Streak milestone: full-screen confetti overlay with "X Day Streak!" message
+- Reward card "Redeem" tap: card flips (3D CSS flip) to show confirmation side
+- Wishlist progress bar: animates fill when balance increases
+- Notification bell: badge pulses when new notification arrives
+- Log It button: ripple effect on tap, spinner during submission
+
+--- WHAT NOT TO DESIGN ---
+
+- No desktop/web layouts (mobile only for this session)
+- No complex data tables or admin panels
+- No dark mode (v1 is light mode only)
+- No onboarding tutorial screens (design separately later)
+```
+
+---
+
+## Open Questions
+
+- Should bonus point values for streak milestones be system-defined or user-configurable per habit?
+- Should monitors receive email notifications for pending approvals, or only in-app?
+- Is there a maximum number of monitors per user?
