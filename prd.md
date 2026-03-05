@@ -461,8 +461,301 @@ Design these reusable components explicitly:
 
 ---
 
+## Long-Term Roadmap
+
+### Native Mobile App
+
+Migrate from PWA to native mobile using Capacitor (wrapping the existing React app). This unlocks native APIs not available in the browser and enables App Store / Play Store distribution.
+
+| Phase | Milestone | Details |
+|---|---|---|
+| 1 | Add Capacitor to project | `@capacitor/core`, `@capacitor/cli`, iOS + Android targets |
+| 2 | Native camera integration | Replace browser file picker with `@capacitor/camera` for photo proof |
+| 3 | Push notifications | `@capacitor/push-notifications` + Supabase Edge Function for delivery |
+| 4 | Haptic feedback | `@capacitor/haptics` on point earn, streak milestone, reward redeem |
+| 5 | App Store / Play Store submission | Icons, screenshots, privacy policy, store listings |
+| 6 | Background sync | Sync action logs queued offline when connectivity resumes |
+
+See `docs/mobile-native-publishing-guide.md` for full publishing and account details.
+
+---
+
+### Health & Fitness Data Integration
+
+Connect to health platforms and wearable devices to automatically verify habit completions and import fitness data as proof. This eliminates manual self-reporting for exercise, nutrition, sleep, and wellness habits.
+
+#### Supported Platforms
+
+| Platform | Data Access Method | Supported OS | Key Data Types | Auth Model |
+|---|---|---|---|---|
+| **Apple Health (HealthKit)** | Native HealthKit API via Capacitor plugin | iOS only | Steps, workouts, heart rate, sleep, nutrition, body measurements, mindfulness minutes | On-device permission prompt; data never leaves device unless user consents |
+| **Google Health Connect** | Health Connect API via Capacitor plugin | Android 14+ (backport to Android 9+) | Steps, workouts, heart rate, sleep, nutrition, body measurements, hydration | Runtime permission per data type |
+| **Fitbit** | Fitbit Web API (OAuth 2.0) | iOS, Android, Web | Steps, activity, sleep, heart rate, SpO2, weight, water intake | OAuth 2.0 PKCE; requires Fitbit developer app registration |
+| **Garmin** | Garmin Connect API (OAuth 1.0a) | iOS, Android, Web | Activities, steps, sleep, heart rate, body composition, stress | OAuth 1.0a; requires Garmin developer portal access |
+| **Whoop** | Whoop API (OAuth 2.0) | iOS, Android, Web | Strain, recovery, sleep performance, heart rate, HRV | OAuth 2.0; requires Whoop developer access |
+| **Oura Ring** | Oura Cloud API (OAuth 2.0) | iOS, Android, Web | Sleep score, readiness, activity, heart rate, HRV, body temperature | OAuth 2.0; Personal access token or OAuth app |
+| **Samsung Health** | Samsung Health SDK | Android (Samsung devices) | Steps, workouts, heart rate, sleep, blood pressure, SpO2 | Samsung Health app permission; limited to Samsung ecosystem |
+| **Strava** | Strava API v3 (OAuth 2.0) | iOS, Android, Web | Activities (run, ride, swim), distance, pace, elevation, heart rate zones | OAuth 2.0; rate-limited (100 req/15 min, 1000 req/day) |
+| **Peloton** | Unofficial API (no official public API) | Web (scraping/reverse-engineered) | Workouts, output, cadence, heart rate, class history | Username/password; fragile, may break |
+| **Withings** | Withings API (OAuth 2.0) | iOS, Android, Web | Weight, body composition, blood pressure, sleep, activity | OAuth 2.0; requires Withings developer account |
+| **MyFitnessPal** | No public API (discontinued 2022) | N/A | N/A — must use photo proof + LLM verification instead | N/A |
+
+#### Integration Architecture
+
+```
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│  Native App     │     │  Supabase Edge   │     │  Supabase DB    │
+│  (Capacitor)    │────▶│  Functions       │────▶│  (PostgreSQL)   │
+│                 │     │                  │     │                 │
+│ HealthKit /     │     │ OAuth token mgmt │     │ health_data     │
+│ Health Connect  │     │ API polling      │     │ action_logs     │
+│ (on-device)     │     │ Data normalize   │     │ point_ledger    │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
+        │                        │
+        │                        ▼
+        │               ┌──────────────────┐
+        │               │  Third-party     │
+        └──────────────▶│  APIs            │
+                        │  (Fitbit, Garmin │
+                        │   Strava, etc.)  │
+                        └──────────────────┘
+```
+
+**On-device sources** (Apple Health, Google Health Connect): Data is read directly on the device using native plugins. No server-side API needed. The app requests permission, reads relevant metrics, and syncs summaries to Supabase.
+
+**Cloud API sources** (Fitbit, Garmin, Strava, etc.): OAuth tokens are stored in Supabase. A scheduled Edge Function polls each API for new data, normalizes it, and writes to the `health_data` table.
+
+#### Implementation Steps Per Platform
+
+| Step | Apple HealthKit | Google Health Connect | Fitbit / Garmin / Strava (Cloud APIs) |
+|---|---|---|---|
+| **1. Plugin/SDK** | `@nickreynolds/capacitor-healthkit` or `capacitor-health-connect` (iOS portion) | `capacitor-health-connect` | Supabase Edge Function + fetch |
+| **2. Permissions** | Add `HealthKit` capability in Xcode; request per-data-type read access | Add Health Connect permissions in `AndroidManifest.xml`; request at runtime | OAuth consent screen; user authorizes data scopes |
+| **3. Data read** | Query `HKSampleQuery` for steps, workouts, sleep in date range | Query `readRecords()` for steps, exercise sessions, sleep | `GET /user/-/activities/date/{date}.json` (Fitbit) or equivalent |
+| **4. Normalize** | Map HealthKit types → internal schema (activity type, duration, calories, timestamp) | Map Health Connect records → same internal schema | Map API response JSON → same internal schema |
+| **5. Sync to DB** | Batch insert into `health_data` table via Supabase client | Same as HealthKit | Edge Function writes to `health_data` table |
+| **6. Auto-verify habits** | Match incoming data against habit rules (e.g., "Run 30+ min" → check workouts ≥ 30 min) | Same matching logic | Same matching logic |
+| **7. Award points** | If rule matched and not already logged → create `action_log` + credit `point_ledger` | Same | Same |
+| **8. Privacy** | Show Apple Health usage description in `Info.plist`; data stays on device until user syncs | Show Health Connect rationale dialog | Privacy policy must disclose API data usage; tokens encrypted at rest |
+
+#### Proposed Data Model Addition
+
+```sql
+-- New table for normalized health/fitness data
+CREATE TABLE health_data (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) NOT NULL,
+  source text NOT NULL,           -- 'apple_health', 'google_health_connect', 'fitbit', 'garmin', 'strava', etc.
+  data_type text NOT NULL,        -- 'steps', 'workout', 'sleep', 'heart_rate', 'nutrition', etc.
+  value numeric,                  -- primary metric value (steps count, duration in minutes, calories, etc.)
+  unit text,                      -- 'steps', 'minutes', 'kcal', 'bpm', etc.
+  metadata jsonb DEFAULT '{}',    -- additional fields: workout_type, distance_km, heart_rate_avg, etc.
+  recorded_at timestamptz NOT NULL, -- when the activity occurred
+  synced_at timestamptz DEFAULT now(), -- when we received the data
+  UNIQUE(user_id, source, data_type, recorded_at) -- prevent duplicate imports
+);
+
+-- Habit auto-verification rules
+CREATE TABLE habit_health_rules (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  habit_id uuid REFERENCES habits(id) ON DELETE CASCADE NOT NULL,
+  source text NOT NULL,           -- which platform to check
+  data_type text NOT NULL,        -- which metric
+  operator text NOT NULL,         -- 'gte', 'lte', 'eq', 'between'
+  threshold numeric NOT NULL,     -- minimum value to trigger (e.g., 30 for "30+ min workout")
+  threshold_upper numeric,        -- upper bound for 'between' operator
+  unit text NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
+```
+
+#### Privacy & Compliance Considerations
+
+| Concern | Approach |
+|---|---|
+| **Apple HealthKit guidelines** | Must provide clear usage description; cannot store raw HealthKit data on external servers without consent; cannot use health data for advertising |
+| **Google Health Connect policy** | Must declare Health Connect permissions in Play Store listing; limited use policy applies |
+| **HIPAA** | Not applicable unless app makes medical claims — Motivate Me is wellness/fitness only |
+| **GDPR** | Health data is "special category" under GDPR — requires explicit consent, purpose limitation, right to deletion |
+| **Data minimization** | Only sync data types relevant to user's configured habits; never bulk-export all health data |
+| **Token security** | Store OAuth refresh tokens encrypted in Supabase; never expose in client-side code |
+
+---
+
+### AI-Powered Photo Proof Verification
+
+Use LLM vision models to automatically analyze photo proof submitted with habit logs. This replaces or supplements manual monitor review for verifying actions like eating healthy meals, completing workouts, cleaning, studying, etc.
+
+#### How It Works
+
+```
+User submits photo proof
+        │
+        ▼
+┌──────────────────────┐
+│  Supabase Edge       │
+│  Function            │
+│                      │
+│  1. Receive image    │
+│  2. Call LLM Vision  │
+│  3. Parse response   │
+│  4. Score confidence │
+│  5. Auto-approve or  │
+│     flag for review  │
+└──────────────────────┘
+        │
+        ▼
+┌──────────────────────┐
+│  Result:             │
+│  • auto_approved     │
+│  • flagged_for_review│
+│  • rejected          │
+└──────────────────────┘
+```
+
+#### Supported Verification Scenarios
+
+| Habit Category | What the LLM Detects | Example Prompt to Model |
+|---|---|---|
+| **Nutrition / Meals** | Food type, portion size, protein presence, vegetables, meal balance | "Does this photo show a meal with a visible protein source (meat, fish, eggs, tofu, beans)? Estimate the portion." |
+| **Workout / Exercise** | Gym setting, exercise equipment, active pose, outdoor run, yoga mat | "Does this photo show a person actively exercising or in a gym/workout environment?" |
+| **Cleaning / Tidying** | Clean room, organized space, before/after comparison | "Does this photo show a clean, organized living space?" |
+| **Reading / Studying** | Open book, notebook, study materials, desk setup | "Does this photo show active reading or studying with visible books or study materials?" |
+| **Hydration** | Water bottle, glass of water, water tracker | "Does this photo show a water bottle or glass of water being consumed?" |
+| **Meditation / Mindfulness** | Meditation pose, calm setting, meditation app on screen | "Does this photo show a meditation or mindfulness practice setting?" |
+| **Outdoor / Nature** | Outdoor scenery, park, trail, natural sunlight | "Does this photo show an outdoor nature setting suggesting a walk or hike?" |
+| **Medication / Supplements** | Pills, vitamin bottles, supplement containers | "Does this photo show medication or supplements being taken?" |
+
+#### LLM Provider Options
+
+| Provider | Model | Vision Support | Cost (per 1K images) | Latency | Best For |
+|---|---|---|---|---|---|
+| **Anthropic** | Claude Sonnet 4.6 | Yes — native multimodal | ~$3–5 (depending on image size) | 1–3s | High accuracy, nuanced understanding, safety-conscious |
+| **OpenAI** | GPT-4o / GPT-4o-mini | Yes — native multimodal | ~$2–5 (4o), ~$0.50 (4o-mini) | 1–2s | Fast, cost-effective with 4o-mini for simple checks |
+| **Google** | Gemini 2.5 Flash | Yes — native multimodal | ~$0.10–0.40 | <1s | Cheapest option, good for high volume |
+| **Self-hosted** | LLaVA / Llama 3.2 Vision | Yes (open-source) | Infra cost only | Varies | Full data control, no API dependency |
+
+**Recommendation:** Start with **Claude Sonnet 4.6** for accuracy and safety, with **Gemini 2.5 Flash** as a fallback for cost-sensitive high-volume checks. Use a tiered approach: Flash for simple yes/no checks, Sonnet for ambiguous cases requiring nuance.
+
+#### Implementation Details
+
+**Edge Function pseudocode:**
+
+```typescript
+// supabase/functions/verify-photo/index.ts
+import Anthropic from '@anthropic-ai/sdk'
+
+const client = new Anthropic()
+
+export async function verifyPhoto(
+  imageUrl: string,
+  habitName: string,
+  habitDescription: string,
+  verificationPrompt: string
+): Promise<{ approved: boolean; confidence: number; reason: string }> {
+
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-6-20250514',
+    max_tokens: 256,
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'image', source: { type: 'url', url: imageUrl } },
+        { type: 'text', text: `You are verifying photo proof for a habit tracking app.
+
+Habit: "${habitName}"
+Description: "${habitDescription}"
+Verification question: "${verificationPrompt}"
+
+Analyze this photo and respond with JSON:
+{
+  "approved": true/false,
+  "confidence": 0.0-1.0,
+  "reason": "brief explanation"
+}
+
+Be strict but fair. If the photo is ambiguous, set confidence below 0.7.` }
+      ]
+    }]
+  })
+
+  return JSON.parse(response.content[0].text)
+}
+```
+
+**Approval logic:**
+
+| Confidence Score | Action |
+|---|---|
+| ≥ 0.85 | Auto-approve — points awarded immediately |
+| 0.50 – 0.84 | Flag for monitor review — show AI assessment alongside photo |
+| < 0.50 | Auto-reject — notify user with reason, allow resubmission |
+
+**Anti-fraud measures:**
+
+| Measure | Implementation |
+|---|---|
+| **EXIF metadata check** | Verify photo timestamp is within 1 hour of submission time |
+| **Reverse image search** | Hash the image and check against previously submitted photos by the same user |
+| **Location plausibility** | Optional — check EXIF GPS against expected location (e.g., gym address) |
+| **Duplicate detection** | Perceptual hash (pHash) to detect reuse of same/similar photos |
+| **Rate limiting** | Max 1 photo verification per habit per hour to prevent gaming |
+
+#### Proposed Data Model Addition
+
+```sql
+-- Photo verification results
+CREATE TABLE photo_verifications (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  action_log_id uuid REFERENCES action_logs(id) ON DELETE CASCADE NOT NULL,
+  llm_provider text NOT NULL,        -- 'anthropic', 'openai', 'google'
+  llm_model text NOT NULL,           -- 'claude-sonnet-4-6', 'gpt-4o-mini', etc.
+  approved boolean NOT NULL,
+  confidence numeric NOT NULL,       -- 0.0 to 1.0
+  reason text,                       -- LLM explanation
+  prompt_used text,                  -- the verification prompt sent
+  response_raw jsonb,                -- full LLM response for audit
+  cost_cents integer,                -- API cost in cents for tracking spend
+  latency_ms integer,                -- response time
+  created_at timestamptz DEFAULT now()
+);
+
+-- Per-habit verification configuration
+ALTER TABLE habits ADD COLUMN ai_verification_enabled boolean DEFAULT false;
+ALTER TABLE habits ADD COLUMN ai_verification_prompt text;
+ALTER TABLE habits ADD COLUMN ai_confidence_threshold numeric DEFAULT 0.85;
+```
+
+#### Cost Estimation
+
+| Usage Level | Photos/Month | Claude Sonnet 4.6 | Gemini 2.5 Flash | Hybrid (Flash + Sonnet fallback) |
+|---|---|---|---|---|
+| Light (1 user, 2 habits) | ~60 | ~$0.30 | ~$0.02 | ~$0.05 |
+| Moderate (10 users, 3 habits) | ~900 | ~$4.50 | ~$0.30 | ~$0.75 |
+| Heavy (100 users, 5 habits) | ~15,000 | ~$75 | ~$5 | ~$12 |
+| Scale (1,000 users) | ~150,000 | ~$750 | ~$50 | ~$120 |
+
+---
+
+### Implementation Priority & Dependencies
+
+| Priority | Feature | Depends On | Effort |
+|---|---|---|---|
+| 1 | Native mobile app (Capacitor) | None — can start immediately | 1–2 weeks |
+| 2 | Apple HealthKit integration | Native app (Capacitor + iOS) | 1 week |
+| 3 | Google Health Connect integration | Native app (Capacitor + Android) | 1 week |
+| 4 | AI photo proof verification | Supabase Edge Functions, LLM API key | 1 week |
+| 5 | Cloud API integrations (Fitbit, Garmin) | OAuth infrastructure in Supabase | 2–3 weeks |
+| 6 | Strava / Whoop / Oura integrations | Same OAuth infrastructure (incremental) | 1 week each |
+| 7 | Auto-verification rules engine | Health data + AI verification in place | 1 week |
+
+---
+
 ## Open Questions
 
 - Should bonus point values for streak milestones be system-defined or user-configurable per habit?
 - Should monitors receive email notifications for pending approvals, or only in-app?
 - Is there a maximum number of monitors per user?
+- For AI photo verification, should users be able to customize the verification prompt per habit, or should the system infer it from the habit name/description?
+- For health data integration, should auto-verified habit completions bypass monitor approval, or should monitors still be able to override?
+- What is the acceptable false-positive rate for AI photo verification before it undermines trust in the point system?
