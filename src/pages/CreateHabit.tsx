@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { useApp } from '../lib/store'
 import { getMyMonitors } from '../lib/monitors'
+import type { MonitorConnection } from '../types'
 
 const isTestMode = import.meta.env.MODE === 'test'
 
@@ -16,16 +17,34 @@ export default function CreateHabit() {
   const [requiresPhoto, setRequiresPhoto] = useState(false)
   const [requiresApproval, setRequiresApproval] = useState(false)
   const [frequencyTarget, setFrequencyTarget] = useState<'none' | 'daily' | 'custom'>('daily')
-  const [hasMonitors, setHasMonitors] = useState(false)
+  const [monitors, setMonitors] = useState<MonitorConnection[]>([])
+  const [selectedMonitorIds, setSelectedMonitorIds] = useState<string[]>([])
 
   useEffect(() => {
     if (!user || isTestMode) return
     let active = true
-    getMyMonitors(user.id).then((monitors) => {
-      if (active) setHasMonitors(monitors.length > 0)
+    getMyMonitors(user.id).then((m) => {
+      if (active) setMonitors(m)
     }).catch(() => {})
     return () => { active = false }
   }, [user])
+
+  const hasMonitors = monitors.length > 0
+
+  function toggleMonitorSelection(monitorId: string) {
+    setSelectedMonitorIds((prev) =>
+      prev.includes(monitorId) ? prev.filter((id) => id !== monitorId) : [...prev, monitorId]
+    )
+  }
+
+  function handleApprovalToggle(checked: boolean) {
+    setRequiresApproval(checked)
+    if (checked && monitors.length === 1) {
+      setSelectedMonitorIds([monitors[0].monitorUserId])
+    } else if (!checked) {
+      setSelectedMonitorIds([])
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,6 +55,7 @@ export default function CreateHabit() {
       pointsPerCompletion: points,
       requiresPhoto,
       requiresApproval: hasMonitors ? requiresApproval : false,
+      approverMonitorIds: requiresApproval && selectedMonitorIds.length > 0 ? selectedMonitorIds : undefined,
       frequencyTarget,
       isActive: true,
     })
@@ -146,7 +166,7 @@ export default function CreateHabit() {
                 <p className="text-slate-500 text-sm">Reward per completion</p>
               </div>
             </div>
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => setPoints((p) => Math.max(1, p - 1))}
@@ -155,13 +175,20 @@ export default function CreateHabit() {
               >
                 <span className="material-symbols-outlined text-xl">remove</span>
               </button>
-              <span
+              <input
+                type="text"
+                inputMode="numeric"
                 aria-live="polite"
-                aria-label={`${points} points`}
-                className="text-2xl font-bold text-slate-900 w-8 text-center"
-              >
-                {points}
-              </span>
+                aria-label="Points per completion"
+                value={points}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value, 10)
+                  if (!isNaN(v) && v >= 1) setPoints(v)
+                  else if (e.target.value === '') setPoints(1)
+                }}
+                onFocus={(e) => e.target.select()}
+                className="w-16 text-center text-2xl font-bold text-slate-900 bg-transparent border-none focus:outline-none focus:ring-0"
+              />
               <button
                 type="button"
                 onClick={() => setPoints((p) => p + 1)}
@@ -188,7 +215,7 @@ export default function CreateHabit() {
                 icon="how_to_reg"
                 label="Requires Monitor Approval"
                 checked={requiresApproval}
-                onChange={setRequiresApproval}
+                onChange={handleApprovalToggle}
                 disabled={!hasMonitors}
               />
               {!hasMonitors && (
@@ -198,13 +225,56 @@ export default function CreateHabit() {
                 </p>
               )}
             </div>
+
+            {/* Monitor Picker — shown when approval is on and >1 monitor */}
+            {requiresApproval && monitors.length > 1 && (
+              <div className="ml-14 space-y-2">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Select Approvers</p>
+                <div className="space-y-2">
+                  {monitors.map((mon) => {
+                    const selected = selectedMonitorIds.includes(mon.monitorUserId)
+                    const label = mon.monitorEmail ?? mon.monitorUserId.slice(0, 8)
+                    return (
+                      <button
+                        key={mon.id}
+                        type="button"
+                        onClick={() => toggleMonitorSelection(mon.monitorUserId)}
+                        className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${
+                          selected ? 'border-[#D35400] bg-[#D35400]/5' : 'border-slate-100 bg-white'
+                        }`}
+                      >
+                        <div className={`size-6 rounded-md flex items-center justify-center ${
+                          selected ? 'bg-[#D35400] text-white' : 'bg-slate-100'
+                        }`}>
+                          {selected && <span className="material-symbols-outlined text-sm">check</span>}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-medium truncate ${selected ? 'text-[#D35400]' : 'text-slate-700'}`}>
+                            {label}
+                          </p>
+                          <p className="text-[10px] text-slate-400">
+                            Since {mon.acceptedAt ? new Date(mon.acceptedAt).toLocaleDateString() : '—'}
+                          </p>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+                {selectedMonitorIds.length === 0 && (
+                  <p className="text-xs text-amber-600 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">warning</span>
+                    Select at least one approver
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Submit */}
           <div className="pt-4">
             <button
               type="submit"
-              disabled={!name.trim()}
+              disabled={!name.trim() || (requiresApproval && monitors.length > 1 && selectedMonitorIds.length === 0)}
               className="w-full bg-[#D35400] py-5 rounded-2xl text-white font-bold text-lg disabled:opacity-40 hover:bg-[#B84700] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
               style={{ boxShadow: '0 8px 24px rgba(211,84,0,0.3)' }}
             >

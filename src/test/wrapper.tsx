@@ -10,7 +10,10 @@ const mockAuth = {
   user: mockUser,
   session: null,
   loading: false,
+  signUp: async () => ({ error: null }),
+  signInWithPassword: async () => ({ error: null }),
   signInWithMagicLink: async () => ({ error: null }),
+  changePassword: async () => ({ error: null }),
   signOut: async () => {},
 }
 

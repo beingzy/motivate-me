@@ -6,6 +6,7 @@ import type { Habit, ActionLog, PointLedgerEntry, Reward, AppNotification } from
 interface HabitRow {
   id: string; user_id: string; name: string; description: string | null
   points_per_completion: number; requires_photo: boolean; requires_approval: boolean
+  approver_monitor_ids: string[] | null
   frequency_target: string; frequency_count: number | null; is_active: boolean; created_at: string
 }
 
@@ -37,6 +38,7 @@ function toHabit(r: HabitRow): Habit {
     description: r.description ?? undefined,
     pointsPerCompletion: r.points_per_completion,
     requiresPhoto: r.requires_photo, requiresApproval: r.requires_approval,
+    approverMonitorIds: r.approver_monitor_ids ?? undefined,
     frequencyTarget: r.frequency_target as Habit['frequencyTarget'],
     frequencyCount: r.frequency_count ?? undefined,
     isActive: r.is_active, createdAt: r.created_at,
@@ -123,6 +125,7 @@ export async function insertHabit(userId: string, habit: Habit) {
     description: habit.description ?? null,
     points_per_completion: habit.pointsPerCompletion,
     requires_photo: habit.requiresPhoto, requires_approval: habit.requiresApproval,
+    approver_monitor_ids: habit.approverMonitorIds ?? null,
     frequency_target: habit.frequencyTarget,
     frequency_count: habit.frequencyCount ?? null,
     is_active: habit.isActive,
@@ -137,6 +140,7 @@ export async function updateHabitRow(id: string, data: Partial<Habit>) {
   if (data.pointsPerCompletion !== undefined) updates.points_per_completion = data.pointsPerCompletion
   if (data.requiresPhoto !== undefined) updates.requires_photo = data.requiresPhoto
   if (data.requiresApproval !== undefined) updates.requires_approval = data.requiresApproval
+  if (data.approverMonitorIds !== undefined) updates.approver_monitor_ids = data.approverMonitorIds ?? null
   if (data.frequencyTarget !== undefined) updates.frequency_target = data.frequencyTarget
   if (data.frequencyCount !== undefined) updates.frequency_count = data.frequencyCount ?? null
   if (data.isActive !== undefined) updates.is_active = data.isActive

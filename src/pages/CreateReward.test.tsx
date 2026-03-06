@@ -39,13 +39,22 @@ describe('CreateReward', () => {
 
   it('point cost starts at 500', () => {
     renderCreateReward()
-    expect(screen.getByLabelText('500 points')).toBeInTheDocument()
+    const input = screen.getByLabelText('Point cost') as HTMLInputElement
+    expect(input.value).toBe('500')
   })
 
-  it('increments cost', () => {
+  it('increments cost by 50', () => {
     renderCreateReward()
     fireEvent.click(screen.getByRole('button', { name: /Increase cost/i }))
-    expect(screen.getByLabelText('600 points')).toBeInTheDocument()
+    const input = screen.getByLabelText('Point cost') as HTMLInputElement
+    expect(input.value).toBe('550')
+  })
+
+  it('allows typing a cost directly', () => {
+    renderCreateReward()
+    const input = screen.getByLabelText('Point cost') as HTMLInputElement
+    fireEvent.change(input, { target: { value: '1200' } })
+    expect(input.value).toBe('1200')
   })
 
   it('toggles approval', () => {

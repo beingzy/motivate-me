@@ -102,13 +102,26 @@ export default function CreateReward() {
                 <p className="text-slate-500 text-sm">Points to redeem</p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <button type="button" onClick={() => setPointCost((p) => Math.max(1, p - 100))} aria-label="Decrease cost"
+            <div className="flex items-center gap-3">
+              <button type="button" onClick={() => setPointCost((p) => Math.max(1, p - 50))} aria-label="Decrease cost"
                 className="size-10 flex items-center justify-center rounded-full bg-white shadow-sm border border-slate-100 active:scale-95 transition-transform">
                 <span className="material-symbols-outlined text-xl">remove</span>
               </button>
-              <span aria-live="polite" aria-label={`${pointCost} points`} className="text-2xl font-bold text-slate-900 min-w-[3ch] text-center">{pointCost}</span>
-              <button type="button" onClick={() => setPointCost((p) => p + 100)} aria-label="Increase cost"
+              <input
+                type="text"
+                inputMode="numeric"
+                aria-live="polite"
+                aria-label="Point cost"
+                value={pointCost}
+                onChange={(e) => {
+                  const v = parseInt(e.target.value, 10)
+                  if (!isNaN(v) && v >= 1) setPointCost(v)
+                  else if (e.target.value === '') setPointCost(1)
+                }}
+                onFocus={(e) => e.target.select()}
+                className="w-20 text-center text-2xl font-bold text-slate-900 bg-transparent border-none focus:outline-none focus:ring-0"
+              />
+              <button type="button" onClick={() => setPointCost((p) => p + 50)} aria-label="Increase cost"
                 className="size-10 flex items-center justify-center rounded-full bg-white shadow-sm border border-slate-100 active:scale-95 transition-transform">
                 <span className="material-symbols-outlined text-xl">add</span>
               </button>

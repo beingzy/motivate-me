@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { TestWrapper } from '../test/wrapper'
 import Dashboard from './Dashboard'
 
@@ -10,7 +10,6 @@ function renderDashboard() {
 describe('Dashboard', () => {
   it('renders point balance', () => {
     renderDashboard()
-    // Balance is derived from seed ledger entries
     expect(screen.getByLabelText('Point balance')).toBeInTheDocument()
   })
 
@@ -43,8 +42,59 @@ describe('Dashboard', () => {
 
   it('shows weekly progress for daily habits', () => {
     renderDashboard()
-    // Seed data has daily habits with logs; should show "X/7 this week"
     const progressTexts = screen.getAllByText(/\/7 this week/i)
     expect(progressTexts.length).toBeGreaterThan(0)
+  })
+
+  // ── Inline habit logging tests ──
+
+  it('expands inline logging panel when tapping unchecked habit', () => {
+    renderDashboard()
+    // h3 "Read 20 Pages" is not logged today
+    const logButton = screen.getByTestId('habit-check-h3')
+    fireEvent.click(logButton)
+    expect(screen.getByPlaceholderText('How did it go?')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Log It/i })).toBeInTheDocument()
+  })
+
+  it('shows photo upload when habit requires photo', () => {
+    renderDashboard()
+    // h4 "Daily Workout" requires photo
+    const logButton = screen.getByTestId('habit-check-h4')
+    fireEvent.click(logButton)
+    expect(screen.getByText('Required')).toBeInTheDocument()
+    expect(screen.getByLabelText('Upload photo')).toBeInTheDocument()
+  })
+
+  it('submitting calls logAction and shows success state', async () => {
+    renderDashboard()
+    const logButton = screen.getByTestId('habit-check-h3')
+    fireEvent.click(logButton)
+
+    const submitBtn = screen.getByRole('button', { name: /Log It/i })
+    fireEvent.click(submitBtn)
+
+    await waitFor(() => {
+      expect(screen.getByText(/\+15 pts/)).toBeInTheDocument()
+    })
+  })
+
+  it('only one panel open at a time', () => {
+    renderDashboard()
+    // Open h3
+    fireEvent.click(screen.getByTestId('habit-check-h3'))
+    expect(screen.getByPlaceholderText('How did it go?')).toBeInTheDocument()
+
+    // Open h4 — h3 panel should close
+    fireEvent.click(screen.getByTestId('habit-check-h4'))
+    // Now the note field should belong to h4, and there should only be one
+    const noteFields = screen.getAllByPlaceholderText('How did it go?')
+    expect(noteFields).toHaveLength(1)
+  })
+
+  it('already-logged habits cannot be expanded', () => {
+    renderDashboard()
+    // h1 "Morning Meditation" is logged today — should not have a clickable check button
+    expect(screen.queryByTestId('habit-check-h1')).not.toBeInTheDocument()
   })
 })

@@ -18,6 +18,8 @@ import EditProfile from './pages/EditProfile'
 import Me from './pages/Me'
 
 export const router = createBrowserRouter([
+  // Invite route is outside AuthGate — AcceptInvite handles its own auth
+  { path: 'invite/:token', element: <AcceptInvite /> },
   {
     path: '/',
     element: <AuthGate><AppShell /></AuthGate>,
@@ -34,7 +36,6 @@ export const router = createBrowserRouter([
       { path: 'notifications', element: <Notifications /> },
       { path: 'monitors', element: <Monitors /> },
       { path: 'monitor/:userId', element: <MonitorDashboard /> },
-      { path: 'invite/:token', element: <AcceptInvite /> },
       { path: 'profile/edit', element: <EditProfile /> },
       { path: 'me', element: <Me /> },
     ],

@@ -32,6 +32,20 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
   return toProfile(data as ProfileRow)
 }
 
+export async function fetchProfiles(userIds: string[]): Promise<Map<string, Profile>> {
+  const map = new Map<string, Profile>()
+  if (userIds.length === 0) return map
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .in('id', userIds)
+  if (error || !data) return map
+  for (const row of data as ProfileRow[]) {
+    map.set(row.id, toProfile(row))
+  }
+  return map
+}
+
 export async function upsertProfile(
   userId: string,
   updates: { displayName?: string; gender?: Gender | null }

@@ -10,49 +10,53 @@ export async function createMonitorInvite(userId: string): Promise<string> {
   const token = generateToken()
   const { error } = await supabase.from('monitors').insert({
     user_id: userId,
-    monitor_user_id: userId, // placeholder — updated when accepted
     invite_token: token,
   })
   if (error) throw error
   return token
 }
 
-// Accept an invite — monitor accepts with their user ID
+// Accept an invite via RPC (bypasses RLS since accepting user isn't on the row yet)
+// monitorUserId is kept for backward compat but the RPC uses auth.uid() directly
 export async function acceptMonitorInvite(
   token: string,
-  monitorUserId: string
+  ...args: string[]
 ): Promise<{ success: boolean; error?: string }> {
-  // Find the invite
-  const { data, error: fetchError } = await supabase
-    .from('monitors')
-    .select('*')
-    .eq('invite_token', token)
-    .is('accepted_at', null)
-    .single()
+  void args
+  const { data, error } = await supabase.rpc('accept_monitor_invite', {
+    invite_token_param: token,
+  })
 
-  if (fetchError || !data) {
-    return { success: false, error: 'Invalid or expired invite link' }
+  if (error) {
+    return { success: false, error: error.message }
   }
 
-  if (data.user_id === monitorUserId) {
-    return { success: false, error: 'You cannot monitor yourself' }
-  }
+  const result = data as { success: boolean; error?: string }
+  return result
+}
 
-  // Update the connection
-  const { error: updateError } = await supabase
-    .from('monitors')
-    .update({
-      monitor_user_id: monitorUserId,
-      accepted_at: new Date().toISOString(),
-      invite_token: null,
+// Send invite email via Edge Function, falls back to mailto
+export async function sendInviteEmail(
+  to: string,
+  inviteLink: string,
+  fromName?: string
+): Promise<{ success: boolean; method: string; error?: string }> {
+  try {
+    const { data, error } = await supabase.functions.invoke('send-invite-email', {
+      body: { to, inviteLink, fromName },
     })
-    .eq('id', data.id)
 
-  if (updateError) {
-    return { success: false, error: updateError.message }
+    if (error) throw error
+    return { success: true, method: data?.method ?? 'edge-function' }
+  } catch {
+    // Fallback: open mailto
+    const subject = encodeURIComponent('Join me on Motivate Me!')
+    const body = encodeURIComponent(
+      `Hey! I'd love for you to be my accountability monitor on Motivate Me.\n\nClick this link to accept the invite:\n${inviteLink}\n\nThanks!`
+    )
+    window.open(`mailto:${to}?subject=${subject}&body=${body}`, '_self')
+    return { success: true, method: 'mailto-fallback' }
   }
-
-  return { success: true }
 }
 
 // Get monitors for a user (people monitoring me)
@@ -118,7 +122,8 @@ export async function fetchMonitoredUserData(userId: string) {
 // ── Helper ──
 
 interface MonitorRow {
-  id: string; user_id: string; monitor_user_id: string
+  id: string; user_id: string; monitor_user_id: string | null
+  monitor_email: string | null
   permissions: { can_edit_habits: boolean; can_edit_rewards: boolean }
   invite_token: string | null; accepted_at: string | null; created_at: string
 }
@@ -127,7 +132,8 @@ function toConnection(r: MonitorRow): MonitorConnection {
   return {
     id: r.id,
     userId: r.user_id,
-    monitorUserId: r.monitor_user_id,
+    monitorUserId: r.monitor_user_id ?? '',
+    monitorEmail: r.monitor_email ?? undefined,
     permissions: r.permissions,
     inviteToken: r.invite_token ?? undefined,
     acceptedAt: r.accepted_at ?? undefined,

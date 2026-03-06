@@ -27,26 +27,37 @@ describe('CreateHabit', () => {
 
   it('point stepper starts at 15', () => {
     renderCreateHabit()
-    expect(screen.getByLabelText('15 points')).toBeInTheDocument()
+    const input = screen.getByLabelText('Points per completion') as HTMLInputElement
+    expect(input.value).toBe('15')
   })
 
   it('increments points', () => {
     renderCreateHabit()
     fireEvent.click(screen.getByRole('button', { name: /Increase points/i }))
-    expect(screen.getByLabelText('16 points')).toBeInTheDocument()
+    const input = screen.getByLabelText('Points per completion') as HTMLInputElement
+    expect(input.value).toBe('16')
   })
 
   it('decrements points', () => {
     renderCreateHabit()
     fireEvent.click(screen.getByRole('button', { name: /Decrease points/i }))
-    expect(screen.getByLabelText('14 points')).toBeInTheDocument()
+    const input = screen.getByLabelText('Points per completion') as HTMLInputElement
+    expect(input.value).toBe('14')
   })
 
   it('does not go below 1', () => {
     renderCreateHabit()
     const btn = screen.getByRole('button', { name: /Decrease points/i })
     for (let i = 0; i < 20; i++) fireEvent.click(btn)
-    expect(screen.getByLabelText('1 points')).toBeInTheDocument()
+    const input = screen.getByLabelText('Points per completion') as HTMLInputElement
+    expect(input.value).toBe('1')
+  })
+
+  it('allows typing a number directly', () => {
+    renderCreateHabit()
+    const input = screen.getByLabelText('Points per completion') as HTMLInputElement
+    fireEvent.change(input, { target: { value: '100' } })
+    expect(input.value).toBe('100')
   })
 
   it('toggles photo switch', () => {

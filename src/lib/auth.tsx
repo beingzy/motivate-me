@@ -1,12 +1,15 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react'
 import type { User, Session } from '@supabase/supabase-js'
-import { supabase } from './supabase'
+import { supabase, siteUrl } from './supabase'
 
 interface AuthContextValue {
   user: User | null
   session: Session | null
   loading: boolean
+  signUp: (email: string, password: string) => Promise<{ error: string | null }>
+  signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>
   signInWithMagicLink: (email: string) => Promise<{ error: string | null }>
+  changePassword: (newPassword: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
 }
 
@@ -34,12 +37,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
+  const signUp = useCallback(async (email: string, password: string) => {
+    const redirectTo = siteUrl
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: redirectTo },
+    })
+    return { error: error?.message ?? null }
+  }, [])
+
+  const signInWithPassword = useCallback(async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    return { error: error?.message ?? null }
+  }, [])
+
   const signInWithMagicLink = useCallback(async (email: string) => {
-    const redirectTo = import.meta.env.VITE_SITE_URL || window.location.origin
+    const redirectTo = siteUrl
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: redirectTo },
     })
+    return { error: error?.message ?? null }
+  }, [])
+
+  const changePassword = useCallback(async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
     return { error: error?.message ?? null }
   }, [])
 
@@ -48,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signInWithMagicLink, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signUp, signInWithPassword, signInWithMagicLink, changePassword, signOut }}>
       {children}
     </AuthContext.Provider>
   )

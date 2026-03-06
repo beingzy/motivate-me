@@ -1,18 +1,72 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { useApp } from '../lib/store'
 import { deleteAccountAndData } from '../lib/db'
+import { fetchProfile } from '../lib/profile'
+import { getAvatarText, AVATAR_COLORS } from '../lib/avatar'
+
+const isTestMode = import.meta.env.MODE === 'test'
 
 export default function Me() {
-  const { user, signOut } = useAuth()
+  const { user, signOut, changePassword } = useAuth()
   const { totalEarned, totalRedeemed, getBestStreak } = useApp()
+  const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | null>(null)
+  const [profileDisplayName, setProfileDisplayName] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!user || isTestMode) return
+    let active = true
+    fetchProfile(user.id).then((p) => {
+      if (!active || !p) return
+      setProfileAvatarUrl(p.avatarUrl)
+      setProfileDisplayName(p.displayName)
+    }).catch(() => {})
+    return () => { active = false }
+  }, [user])
+
+  const avatarColor = user?.user_metadata?.avatar_color ?? AVATAR_COLORS[0]
+  const displayName = profileDisplayName ?? user?.user_metadata?.display_name ?? null
+  const avatarText = getAvatarText(displayName, user?.email)
+
   const [notifyApprovals, setNotifyApprovals] = useState(true)
   const [notifyStreaks, setNotifyStreaks] = useState(true)
   const [notifyWishlist, setNotifyWishlist] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteInput, setDeleteInput] = useState('')
   const [deleting, setDeleting] = useState(false)
+  const [showChangePassword, setShowChangePassword] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmNewPassword, setConfirmNewPassword] = useState('')
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [passwordSuccess, setPasswordSuccess] = useState(false)
+  const [changingPassword, setChangingPassword] = useState(false)
+
+  const passwordMismatch = confirmNewPassword.length > 0 && newPassword !== confirmNewPassword
+  const passwordTooShort = newPassword.length > 0 && newPassword.length < 6
+
+  async function handleChangePassword() {
+    setPasswordError(null)
+    if (newPassword.length < 6) {
+      setPasswordError('Password must be at least 6 characters')
+      return
+    }
+    if (newPassword !== confirmNewPassword) {
+      setPasswordError('Passwords do not match')
+      return
+    }
+    setChangingPassword(true)
+    const { error } = await changePassword(newPassword)
+    setChangingPassword(false)
+    if (error) {
+      setPasswordError(error)
+    } else {
+      setPasswordSuccess(true)
+      setNewPassword('')
+      setConfirmNewPassword('')
+      setTimeout(() => { setPasswordSuccess(false); setShowChangePassword(false) }, 2000)
+    }
+  }
 
   const bestStreak = getBestStreak()
   const userId = user?.id ?? ''
@@ -46,11 +100,15 @@ export default function Me() {
         {/* Profile Card */}
         <Link to="/profile/edit" className="block bg-white p-6 rounded-2xl border border-slate-100 hover:border-[#D35400]/20 transition-colors">
           <div className="flex items-center gap-4">
-            <div className="size-16 rounded-2xl bg-gradient-to-br from-[#D35400] to-[#E87A2A] flex items-center justify-center text-white text-2xl font-bold">
-              {(user?.email?.[0] ?? 'M').toUpperCase()}
-            </div>
+            {profileAvatarUrl ? (
+              <img src={profileAvatarUrl} alt="Avatar" className="size-16 rounded-2xl object-cover border-2 border-slate-100" />
+            ) : (
+              <div className="size-16 rounded-2xl flex items-center justify-center text-white text-2xl font-bold" style={{ backgroundColor: avatarColor }}>
+                {avatarText}
+              </div>
+            )}
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-bold text-slate-900">{user?.user_metadata?.display_name ?? 'Motivator'}</h3>
+              <h3 className="text-lg font-bold text-slate-900">{displayName ?? 'Motivator'}</h3>
               <p className="text-sm text-slate-500 truncate">{user?.email ?? 'No email'}</p>
             </div>
             <span className="material-symbols-outlined text-slate-300">chevron_right</span>
@@ -99,6 +157,79 @@ export default function Me() {
             <NotifToggle id="notif-streaks" icon="local_fire_department" label="Streak Milestones" checked={notifyStreaks} onChange={setNotifyStreaks} />
             <NotifToggle id="notif-wishlist" icon="favorite" label="Wishlist Ready" checked={notifyWishlist} onChange={setNotifyWishlist} />
           </div>
+        </section>
+
+        {/* Change Password */}
+        <section className="space-y-3">
+          <h3 className="text-lg font-bold text-slate-900">Security</h3>
+          {!showChangePassword ? (
+            <button
+              onClick={() => setShowChangePassword(true)}
+              className="w-full bg-white p-4 rounded-2xl border border-slate-100 flex items-center gap-3 hover:border-[#D35400]/20 transition-colors text-left"
+            >
+              <span className="material-symbols-outlined text-[#D35400]">lock</span>
+              <span className="text-sm font-semibold text-slate-900">Change Password</span>
+              <span className="material-symbols-outlined text-slate-300 ml-auto">chevron_right</span>
+            </button>
+          ) : (
+            <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-4">
+              <div>
+                <label htmlFor="new-password" className="block text-sm font-medium text-slate-700 mb-1">
+                  New Password
+                </label>
+                <input
+                  id="new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="At least 6 characters"
+                  className={`w-full px-4 py-3 rounded-xl border outline-none transition text-sm ${
+                    passwordTooShort ? 'border-red-300' : 'border-slate-200 focus:border-[#D35400]'
+                  } focus:ring-2 focus:ring-[#D35400]/20`}
+                />
+                {passwordTooShort && (
+                  <p className="text-red-500 text-xs mt-1">Must be at least 6 characters</p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="confirm-new-password" className="block text-sm font-medium text-slate-700 mb-1">
+                  Confirm New Password
+                </label>
+                <input
+                  id="confirm-new-password"
+                  type="password"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  placeholder="Re-enter new password"
+                  className={`w-full px-4 py-3 rounded-xl border outline-none transition text-sm ${
+                    passwordMismatch ? 'border-red-300' : 'border-slate-200 focus:border-[#D35400]'
+                  } focus:ring-2 focus:ring-[#D35400]/20`}
+                />
+                {passwordMismatch && (
+                  <p className="text-red-500 text-xs mt-1">Passwords do not match</p>
+                )}
+              </div>
+              {passwordError && <p className="text-red-500 text-sm">{passwordError}</p>}
+              {passwordSuccess && <p className="text-green-600 text-sm font-medium">Password updated successfully!</p>}
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => { setShowChangePassword(false); setNewPassword(''); setConfirmNewPassword(''); setPasswordError(null) }}
+                  className="flex-1 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleChangePassword}
+                  disabled={changingPassword || !newPassword || !confirmNewPassword || passwordMismatch || passwordTooShort}
+                  className="flex-1 py-3 rounded-xl bg-[#D35400] text-white font-semibold text-sm disabled:opacity-40"
+                >
+                  {changingPassword ? 'Updating...' : 'Update Password'}
+                </button>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Sign Out */}

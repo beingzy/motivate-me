@@ -13,6 +13,7 @@ export interface Habit {
   pointsPerCompletion: number
   requiresPhoto: boolean
   requiresApproval: boolean
+  approverMonitorIds?: string[]
   frequencyTarget: 'none' | 'daily' | 'custom'
   frequencyCount?: number
   isActive: boolean

@@ -322,6 +322,93 @@ point_ledger
     - Progress bar fills proportionally; turns green when target met
   - **Tests Required:** Weekly progress renders on habit cards; shows correct count
 
+### Next Up
+
+- [x] **Inline habit logging (single-page)** — Consolidate two-page log flow into inline Dashboard interaction
+  - **User:** Primary user
+  - **Acceptance Criteria:**
+    - Tapping an unchecked habit on Dashboard expands an inline logging panel below the habit card
+    - Panel shows: optional note textarea, photo upload (if habit requires photo), points preview, and "Log It" button
+    - Tapping "Log It" calls `logAction`, shows brief inline success confirmation (+pts badge), then auto-collapses after 1.5s
+    - Only one habit panel can be expanded at a time; tapping another habit collapses the current one
+    - Already-logged habits show filled checkbox and cannot be expanded
+    - The separate `/log` route remains available but is no longer the primary path from the Dashboard
+    - Habits requiring photo: "Log It" button disabled until photo is attached
+  - **Tests Required:**
+    - Tapping unchecked habit expands inline panel
+    - Panel shows note field and Log It button
+    - Panel shows photo upload when habit requires photo
+    - Submitting calls logAction and shows success state
+    - Only one panel open at a time
+    - Already-logged habits cannot be expanded
+
+### Next Up
+
+- [x] **Editable point stepper** — Replace static point display with inline editable number + -/+ buttons
+  - **User:** Primary user
+  - **Acceptance Criteria:**
+    - CreateHabit, EditHabit: point value is an editable number input with -/+ buttons, step by 1, min 1
+    - CreateReward: point cost is an editable number input with -/+ buttons, step by 50, min 1
+    - Direct type-in supported for quick big/small number changes
+    - Input auto-selects on focus for easy replacement
+  - **Tests Required:** Type-in changes value; -/+ buttons work; min 1 enforced
+
+- [x] **Custom avatar (generated, no photo)** — Color + initials avatar system
+  - **User:** Primary user
+  - **Acceptance Criteria:**
+    - EditProfile: new "Avatar Style" section with color picker (8 preset colors) above photo upload
+    - Display mode auto-detected: CJK names → first character; "First Last" names → initials (e.g. "JD"); other → first two letters
+    - Avatar config stored in user_metadata (avatar_color)
+    - Me page profile card shows custom avatar (color + initials) or uploaded photo
+    - Dashboard header also shows custom avatar
+  - **Tests Required:** Avatar renders with initials; color selection works; CJK detection works
+
+- [x] **Simplified invite signup** — Skip email confirmation for invited monitors
+  - **User:** Monitor (invited)
+  - **Acceptance Criteria:**
+    - AcceptInvite signup: after successful signUp, auto-call signInWithPassword to get immediate session
+    - If auto-sign-in succeeds, skip "verify email" screen and proceed directly to accept invite
+    - If blocked by email confirmation, redirect confirmation email to invite URL so user returns automatically
+    - Remove confirm password field in invite signup for faster onboarding
+  - **Tests Required:** Invite signup calls signUp then signInWithPassword; success proceeds to accept
+
+### Next Up
+
+- [x] **Multi-monitor support + monitor details** — Show monitor emails, support multiple monitors per habit
+  - **User:** Primary user
+  - **Acceptance Criteria:**
+    - DB: Add `monitor_email` column to monitors table; update accept RPC to store acceptor's email
+    - DB: Add `approver_monitor_ids` column to habits table (text array)
+    - Monitors page: show monitor email for accepted monitors (from DB)
+    - CreateHabit: when user has >1 monitor, show multi-select list of monitors to assign as approvers
+    - CreateHabit: when user has exactly 1 monitor, auto-assign that monitor when approval is toggled on
+    - EditHabit: same monitor picker UI
+    - Habit type: add `approverMonitorIds?: string[]`
+    - DB layer: persist and fetch `approver_monitor_ids`
+  - **Tests Required:**
+    - Monitors page shows monitor email
+    - CreateHabit shows monitor picker when >1 monitor
+    - CreateHabit auto-assigns when exactly 1 monitor
+    - Selected monitors stored on habit
+
+### Next Up
+
+- [x] **Enhanced Monitors page — invite stats + avatar details** — Richer monitor cards with stats and profile info
+  - **User:** Primary user
+  - **Acceptance Criteria:**
+    - Invite summary banner: shows total invites sent and total accepted, green when ≥1 accepted, amber when 0
+    - Pending invite cards: show creation timestamp with relative time (e.g. "3d ago")
+    - People Monitoring Me: avatar circles (color + initials or photo) with tap-to-expand details (display name, email, revoke button)
+    - I'm Monitoring: avatar circles with tap-to-expand details (display name, email, link to dashboard)
+    - Only one card expanded at a time; tapping again collapses
+    - Profile data fetched in batch via `fetchProfiles()` for all connected user IDs
+  - **Tests Required:**
+    - Pending invite cards show timestamp with "ago" text
+    - Summary stats show invite count and accepted count
+    - Monitor cards expand to show details on tap
+    - Monitoring-others cards expand to show "View Dashboard" link
+    - Expanded card collapses on second tap
+
 ### Backlog
 
 - [ ] Push notifications (web push API)

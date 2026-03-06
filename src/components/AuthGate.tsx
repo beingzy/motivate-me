@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { useAuth } from '../lib/auth'
 import Login from '../pages/Login'
+import SignUp from '../pages/SignUp'
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
+  const [mode, setMode] = useState<'login' | 'signup'>('login')
 
   if (loading) {
     return (
@@ -13,7 +16,10 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    return <Login />
+    if (mode === 'signup') {
+      return <SignUp onSwitchToLogin={() => setMode('login')} />
+    }
+    return <Login onSwitchToSignUp={() => setMode('signup')} />
   }
 
   return <>{children}</>

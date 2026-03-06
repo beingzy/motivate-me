@@ -63,4 +63,17 @@ describe('Me (Profile)', () => {
     expect(screen.queryByText(/stored locally in your browser/i)).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Reset All Data/i })).not.toBeInTheDocument()
   })
+
+  it('renders change password button', () => {
+    renderMe()
+    expect(screen.getByText('Change Password')).toBeInTheDocument()
+  })
+
+  it('shows change password form when clicked', () => {
+    renderMe()
+    fireEvent.click(screen.getByText('Change Password'))
+    expect(screen.getByLabelText('New Password')).toBeInTheDocument()
+    expect(screen.getByLabelText('Confirm New Password')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Update Password/i })).toBeInTheDocument()
+  })
 })

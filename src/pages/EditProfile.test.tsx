@@ -35,9 +35,14 @@ describe('EditProfile', () => {
     expect(screen.getByLabelText(/Gender/i)).toBeInTheDocument()
   })
 
-  it('renders profile photo section', () => {
+  it('renders avatar section', () => {
     renderEditProfile()
-    expect(screen.getByText(/Profile Photo/i)).toBeInTheDocument()
+    expect(screen.getByText(/Avatar/i)).toBeInTheDocument()
+  })
+
+  it('renders color picker', () => {
+    renderEditProfile()
+    expect(screen.getByText(/Pick a color/i)).toBeInTheDocument()
   })
 
   it('renders save button', () => {

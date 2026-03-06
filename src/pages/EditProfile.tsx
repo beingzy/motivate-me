@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { fetchProfile, upsertProfile, uploadAvatar } from '../lib/profile'
+import { getAvatarText, AVATAR_COLORS } from '../lib/avatar'
+import { supabase } from '../lib/supabase'
 import type { Gender } from '../types'
 
 const GENDER_OPTIONS: { value: Gender | ''; label: string }[] = [
@@ -25,6 +27,7 @@ export default function EditProfile() {
   const [displayName, setDisplayName] = useState(shouldFetch ? '' : fallbackName)
   const [gender, setGender] = useState<Gender | ''>('')
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [avatarColor, setAvatarColor] = useState(user?.user_metadata?.avatar_color ?? AVATAR_COLORS[0])
   const [loading, setLoading] = useState(shouldFetch)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -58,6 +61,7 @@ export default function EditProfile() {
         displayName: displayName.trim() || undefined,
         gender: gender || null,
       })
+      await supabase.auth.updateUser({ data: { avatar_color: avatarColor, display_name: displayName.trim() || undefined } })
     }
 
     setSaving(false)
@@ -79,7 +83,7 @@ export default function EditProfile() {
 
   const userId = user?.id ?? 'local-user'
   const email = user?.email ?? 'test@example.com'
-  const initials = (displayName || email)[0]?.toUpperCase() ?? '?'
+  const avatarText = getAvatarText(displayName || null, email)
 
   if (loading) {
     return (
@@ -103,9 +107,9 @@ export default function EditProfile() {
       </header>
 
       <main className="px-6 space-y-6 pb-8">
-        {/* Profile Photo */}
-        <section className="flex flex-col items-center gap-3">
-          <p className="text-sm font-semibold text-slate-700">Profile Photo</p>
+        {/* Avatar */}
+        <section className="flex flex-col items-center gap-4">
+          <p className="text-sm font-semibold text-slate-700">Avatar</p>
           <div className="relative">
             {avatarUrl ? (
               <img
@@ -114,8 +118,8 @@ export default function EditProfile() {
                 className="size-24 rounded-2xl object-cover border-2 border-slate-100"
               />
             ) : (
-              <div className="size-24 rounded-2xl bg-gradient-to-br from-[#D35400] to-[#E87A2A] flex items-center justify-center text-white text-3xl font-bold">
-                {initials}
+              <div className="size-24 rounded-2xl flex items-center justify-center text-white text-3xl font-bold" style={{ backgroundColor: avatarColor }}>
+                {avatarText}
               </div>
             )}
             <button
@@ -137,6 +141,35 @@ export default function EditProfile() {
             onChange={handlePhotoUpload}
             className="hidden"
           />
+
+          {/* Color picker */}
+          {!avatarUrl && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-slate-500 text-center">Pick a color</p>
+              <div className="flex gap-2 justify-center">
+                {AVATAR_COLORS.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => setAvatarColor(color)}
+                    aria-label={`Avatar color ${color}`}
+                    className={`size-8 rounded-full transition-all ${avatarColor === color ? 'ring-2 ring-offset-2 ring-slate-900 scale-110' : 'hover:scale-105'}`}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {avatarUrl && (
+            <button
+              type="button"
+              onClick={() => setAvatarUrl(null)}
+              className="text-xs text-slate-400 font-medium hover:text-red-500 transition-colors"
+            >
+              Remove photo (use generated avatar)
+            </button>
+          )}
         </section>
 
         {/* Fields */}
