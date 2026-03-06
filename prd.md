@@ -268,7 +268,7 @@ point_ledger
 
 - [x] **User profile management** — Profile page with ID, photo, email, gender
 
-- [ ] **Monitor invites — email + copy link** — Enhance invite UX
+- [x] **Monitor invites — email + copy link** — Enhance invite UX
   - **User:** Primary user
   - **Acceptance Criteria:**
     - "Invite a Monitor" generates a link with two share options: copy to clipboard, or send via email
@@ -276,7 +276,7 @@ point_ledger
     - After sending, user sees confirmation of invite status (sent / copied)
   - **Tests Required:** Invite section renders copy and email options; email input field present
 
-- [ ] **Habit creation — monitor approval UX** — Improve approval toggle clarity
+- [x] **Habit creation — monitor approval UX** — Improve approval toggle clarity
   - **User:** Primary user
   - **Acceptance Criteria:**
     - CreateHabit: "Requires Monitor Approval" toggle is disabled when user has no monitors
@@ -285,7 +285,7 @@ point_ledger
     - HabitList: show approval-required indicator on habit rows
   - **Tests Required:** Toggle disabled when no monitors; indicator visible on habits with requiresApproval
 
-- [ ] **Remove local storage fallback** — Database-only data storage
+- [x] **Remove local storage fallback** — Database-only data storage
   - **User:** System
   - **Acceptance Criteria:**
     - Remove seed data initialization from store.tsx — all data comes from Supabase
@@ -293,7 +293,7 @@ point_ledger
     - Tests continue using mock context (no change to test behavior)
   - **Tests Required:** All existing tests pass; no localStorage references remain
 
-- [ ] **Account deletion with privacy safeguards** — GDPR-style data removal
+- [x] **Account deletion with privacy safeguards** — GDPR-style data removal
   - **User:** Primary user
   - **Acceptance Criteria:**
     - "Delete My Account" button on Me page (at very bottom, below sign out)
@@ -303,7 +303,7 @@ point_ledger
     - User is signed out and redirected to login
   - **Tests Required:** Delete button renders; confirmation requires exact ID match; cancel aborts
 
-- [ ] **Rearrange Me page layout** — Move dangerous actions to bottom
+- [x] **Rearrange Me page layout** — Move dangerous actions to bottom
   - **User:** Primary user
   - **Acceptance Criteria:**
     - Page order: Profile card → Stats → Quick Links → Notifications → Sign Out → Account Deletion (very bottom)
