@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useApp } from '../lib/store'
 
 export default function Dashboard() {
-  const { habits, pointBalance, isLoggedToday, getStreak, getBestStreak, todayLogs, notifications } = useApp()
+  const { habits, pointBalance, isLoggedToday, getStreak, getBestStreak, getWeeklyCount, todayLogs, notifications } = useApp()
 
   const activeHabits = habits.filter((h) => h.isActive)
   const todayDone = activeHabits.filter((h) => isLoggedToday(h.id))
@@ -127,54 +127,72 @@ export default function Dashboard() {
             {activeHabits.map((habit) => {
               const done = isLoggedToday(habit.id)
               const streak = getStreak(habit.id)
+              const weeklyTarget = habit.frequencyTarget === 'daily' ? 7 : habit.frequencyTarget === 'custom' ? (habit.frequencyCount ?? 0) : 0
+              const weeklyDone = weeklyTarget > 0 ? getWeeklyCount(habit.id) : 0
+              const weeklyPct = weeklyTarget > 0 ? Math.min(100, Math.round((weeklyDone / weeklyTarget) * 100)) : 0
               return (
                 <div
                   key={habit.id}
-                  className="flex items-center gap-4 bg-white p-4 rounded-2xl border border-slate-100 transition-all hover:border-[#D35400]/30"
+                  className="bg-white p-4 rounded-2xl border border-slate-100 transition-all hover:border-[#D35400]/30"
                 >
-                  {done ? (
-                    <div className="size-7 rounded-lg bg-[#D35400] flex items-center justify-center text-white flex-shrink-0">
-                      <span className="material-symbols-outlined text-sm">check</span>
-                    </div>
-                  ) : (
-                    <Link
-                      to="/log"
-                      className="size-7 rounded-lg border-2 border-slate-200 flex items-center justify-center text-transparent hover:border-[#D35400]/40 transition-colors flex-shrink-0"
-                    >
-                      <span className="material-symbols-outlined text-sm">check</span>
-                    </Link>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <h4
-                      className={`font-semibold text-slate-800 truncate ${
-                        done ? 'line-through opacity-50' : ''
-                      }`}
-                    >
-                      {habit.name}
-                    </h4>
-                    <p className="text-xs text-slate-500">{habit.description}</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                  <div className="flex items-center gap-4">
                     {done ? (
-                      <span className="material-symbols-outlined text-[#D35400] text-lg">verified</span>
+                      <div className="size-7 rounded-lg bg-[#D35400] flex items-center justify-center text-white flex-shrink-0">
+                        <span className="material-symbols-outlined text-sm">check</span>
+                      </div>
                     ) : (
-                      <span className="text-[10px] font-bold text-[#FFB800] px-2 py-0.5 bg-[#FFB800]/10 rounded-full">
-                        +{habit.pointsPerCompletion} pts
-                      </span>
+                      <Link
+                        to="/log"
+                        className="size-7 rounded-lg border-2 border-slate-200 flex items-center justify-center text-transparent hover:border-[#D35400]/40 transition-colors flex-shrink-0"
+                      >
+                        <span className="material-symbols-outlined text-sm">check</span>
+                      </Link>
                     )}
-                    {habit.requiresApproval && (
-                      <span className="text-[10px] text-slate-400 flex items-center gap-0.5" title="Requires monitor approval">
-                        <span className="material-symbols-outlined text-xs text-amber-500">lock</span>
-                        Approval
-                      </span>
-                    )}
-                    {streak > 0 && (
-                      <span className="text-[10px] text-slate-400 flex items-center gap-0.5">
-                        <span className="material-symbols-outlined text-xs text-orange-400">local_fire_department</span>
-                        {streak}d
-                      </span>
-                    )}
+                    <div className="flex-1 min-w-0">
+                      <h4
+                        className={`font-semibold text-slate-800 truncate ${
+                          done ? 'line-through opacity-50' : ''
+                        }`}
+                      >
+                        {habit.name}
+                      </h4>
+                      <p className="text-xs text-slate-500">{habit.description}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      {done ? (
+                        <span className="material-symbols-outlined text-[#D35400] text-lg">verified</span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-[#FFB800] px-2 py-0.5 bg-[#FFB800]/10 rounded-full">
+                          +{habit.pointsPerCompletion} pts
+                        </span>
+                      )}
+                      {habit.requiresApproval && (
+                        <span className="text-[10px] text-slate-400 flex items-center gap-0.5" title="Requires monitor approval">
+                          <span className="material-symbols-outlined text-xs text-amber-500">lock</span>
+                          Approval
+                        </span>
+                      )}
+                      {streak > 0 && (
+                        <span className="text-[10px] text-slate-400 flex items-center gap-0.5">
+                          <span className="material-symbols-outlined text-xs text-orange-400">local_fire_department</span>
+                          {streak}d
+                        </span>
+                      )}
+                    </div>
                   </div>
+                  {weeklyTarget > 0 && (
+                    <div className="mt-3 flex items-center gap-3">
+                      <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${weeklyPct >= 100 ? 'bg-green-500' : 'bg-[#D35400]'}`}
+                          style={{ width: `${weeklyPct}%` }}
+                        />
+                      </div>
+                      <span className={`text-[10px] font-semibold whitespace-nowrap ${weeklyPct >= 100 ? 'text-green-600' : 'text-slate-400'}`}>
+                        {weeklyDone}/{weeklyTarget} this week
+                      </span>
+                    </div>
+                  )}
                 </div>
               )
             })}

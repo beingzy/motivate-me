@@ -40,4 +40,11 @@ describe('Dashboard', () => {
     renderDashboard()
     expect(screen.getByLabelText('Notifications')).toBeInTheDocument()
   })
+
+  it('shows weekly progress for daily habits', () => {
+    renderDashboard()
+    // Seed data has daily habits with logs; should show "X/7 this week"
+    const progressTexts = screen.getAllByText(/\/7 this week/i)
+    expect(progressTexts.length).toBeGreaterThan(0)
+  })
 })

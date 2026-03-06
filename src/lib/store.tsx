@@ -59,6 +59,7 @@ interface AppContextValue {
   getStreak: (habitId: string) => number
   getBestStreak: () => number
   isLoggedToday: (habitId: string) => boolean
+  getWeeklyCount: (habitId: string) => number
   todayLogs: ActionLog[]
 
   createHabit: (data: Omit<Habit, 'id' | 'userId' | 'createdAt'>) => void
@@ -150,6 +151,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
           (l.status === 'self_approved' || l.status === 'approved') &&
           isSameDay(new Date(l.loggedAt), today)
       )
+    },
+    [actionLogs]
+  )
+
+  const getWeeklyCount = useCallback(
+    (habitId: string) => {
+      const now = new Date()
+      const dayOfWeek = now.getDay() // 0=Sun
+      const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek)
+      return actionLogs.filter(
+        (l) =>
+          l.habitId === habitId &&
+          (l.status === 'self_approved' || l.status === 'approved') &&
+          new Date(l.loggedAt) >= weekStart
+      ).length
     },
     [actionLogs]
   )
@@ -384,6 +400,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     getStreak,
     getBestStreak,
     isLoggedToday,
+    getWeeklyCount,
     todayLogs,
     createHabit,
     updateHabit,

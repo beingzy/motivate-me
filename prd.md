@@ -311,10 +311,20 @@ point_ledger
     - Update copy: data is stored in the cloud, not locally
   - **Tests Required:** Delete account button renders at bottom; reset data button removed
 
+### Next Up
+
+- [x] **Weekly frequency progress on dashboard** — Show habit completion progress toward weekly targets
+  - **User:** Primary user
+  - **Acceptance Criteria:**
+    - Dashboard habit cards show weekly progress for habits with `frequencyTarget: 'daily'` or `'custom'`
+    - Daily habits: show "X/7 this week" with a mini progress bar
+    - Custom habits: show "X/N this week" based on `frequencyCount`
+    - Progress bar fills proportionally; turns green when target met
+  - **Tests Required:** Weekly progress renders on habit cards; shows correct count
+
 ### Backlog
 
 - [ ] Push notifications (web push API)
-- [ ] Frequency target weekly progress tracking on dashboard
 - [ ] Redemption history detail view with photo gallery
 - [ ] Dark mode
 - [ ] Habit templates / starter packs
