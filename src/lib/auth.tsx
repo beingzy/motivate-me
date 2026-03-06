@@ -35,9 +35,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signInWithMagicLink = useCallback(async (email: string) => {
+    const redirectTo = import.meta.env.VITE_SITE_URL || window.location.origin
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: window.location.origin },
+      options: { emailRedirectTo: redirectTo },
     })
     return { error: error?.message ?? null }
   }, [])
